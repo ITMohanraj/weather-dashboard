@@ -14,23 +14,53 @@ const App = () => {
         }
     }, [weatherData]);
 
+    const API_KEY = '7ab913b9dd0a1ad7ceffa0e402f0e81b';
+
+    const getWindDirection = (deg) => {
+        const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+        const idx = Math.floor((deg + 22.5) / 45) % 8;
+        return directions[idx];
+    };
+
+    const preprocessData = (forecast) => {
+        const data = forecast.list || [];
+        if (!data.length) return {};
+        const dailyData = {};
+        for (const entry of data) {
+            const [date, time] = entry.dt_txt.split(' ');
+            const weatherData = {
+                time,
+                weather: entry.weather[0].main,
+                temp: entry.main.temp,
+                feels_like: entry.main.feels_like,
+                humidity: entry.main.humidity,
+                wind_s: entry.wind.speed,
+                wind_d: getWindDirection(entry.wind.deg),
+            };
+            if (!dailyData[date]) dailyData[date] = [];
+            dailyData[date].push(weatherData);
+        }
+        return dailyData;
+    };
+
     const fetchWeather = async () => {
         if (!city.trim()) return alert("Please enter a city name.");
         try {
-            const apiBase = window.location.origin.includes('localhost:3000') ? 'http://localhost:5000' : '';
-            const response = await fetch(`${apiBase}/weather?city=${encodeURIComponent(city)}`);
+            const url = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(city)}&units=imperial&appid=${API_KEY}`;
+            const response = await fetch(url);
             if (!response.ok) {
-                const err = await response.json();
-                alert(err.error || 'Failed to fetch weather');
+                alert('City not found. Please check the name and try again.');
                 return;
             }
-            const data = await response.json();
-            setWeatherData(data);
+            const raw = await response.json();
+            const processed = preprocessData(raw);
+            setWeatherData(processed);
         } catch (error) {
             console.error('Error fetching weather data:', error);
-            alert('Error fetching weather data');
+            alert('Error fetching weather data. Please try again.');
         }
     };
+
 
     const toggleDropdown = () => {
         setDropdownVisible(!dropdownVisible);
