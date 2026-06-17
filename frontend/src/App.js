@@ -17,7 +17,8 @@ const App = () => {
     const fetchWeather = async () => {
         if (!city.trim()) return alert("Please enter a city name.");
         try {
-            const response = await fetch(`https://weather-app-r7fs.onrender.com/weather?city=${encodeURIComponent(city)}`);
+            const apiBase = window.location.origin.includes('localhost:3000') ? 'http://localhost:5000' : '';
+            const response = await fetch(`${apiBase}/weather?city=${encodeURIComponent(city)}`);
             if (!response.ok) {
                 const err = await response.json();
                 alert(err.error || 'Failed to fetch weather');
@@ -53,10 +54,15 @@ const App = () => {
     };
 
     const getWeatherIcon = (weather) => {
-        if (weather.toLowerCase().includes('clear')) return '☀️';
-        if (weather.toLowerCase().includes('cloud')) return '☁️';
-        if (weather.toLowerCase().includes('rain')) return '🌧️';
-        return '❓';
+        const w = weather.toLowerCase();
+        if (w.includes('clear')) return '☀️';
+        if (w.includes('cloud')) return '☁️';
+        if (w.includes('rain')) return '🌧️';
+        if (w.includes('drizzle')) return '🌦️';
+        if (w.includes('snow')) return '❄️';
+        if (w.includes('thunder')) return '⛈️';
+        if (w.includes('mist') || w.includes('fog') || w.includes('haze')) return '🌫️';
+        return '🌡️';
     };
 
     const formatDate = (dateString) => {
@@ -78,10 +84,13 @@ const App = () => {
                 </button>
                 {dropdownVisible && (
                     <div className="dropdown">
+                        <h3>About the Application</h3>
                         <p>
-                            The Product Manager Accelerator Program is designed to support PM professionals through every stage of their career.
-                            From students looking for entry-level jobs to Directors looking to take on a leadership role, our program has helped hundreds
-                            fulfill their career aspirations.
+                            This is a real-time climate and weather forecast dashboard developed by **Mohanraj K**. 
+                            It integrates with the OpenWeatherMap API to retrieve temperature, humidity, wind patterns, and a 5-day weather breakdown.
+                        </p>
+                        <p style={{ marginTop: '8px', fontSize: '0.8rem', color: '#9CA3AF' }}>
+                            Built using React for the frontend and Flask for the backend API layer.
                         </p>
                     </div>
                 )}
@@ -97,6 +106,7 @@ const App = () => {
                         type="text" 
                         value={city} 
                         onChange={e => setCity(e.target.value)} 
+                        onKeyDown={e => e.key === 'Enter' && fetchWeather()}
                         placeholder="Enter City" 
                     />
                     <button onClick={fetchWeather}>Get Weather</button>
@@ -117,31 +127,32 @@ const App = () => {
                                 </div>
                             </div>
 
-                            <div className="forecast-table">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Time</th>
-                                            <th>Temperature (°F)</th>
-                                            <th>Feels Like (°F)</th>
-                                            <th>Humidity (%)</th>
-                                            <th>Wind (mph)</th>
-                                            <th>Weather</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {weatherData[selectedDate].map((forecast, index) => (
-                                            <tr key={index}>
-                                                <td>{forecast.time}</td>
-                                                <td>{forecast.temp}°F</td>
-                                                <td>{forecast.feels_like}°F</td>
-                                                <td>{forecast.humidity}%</td>
-                                                <td>{forecast.wind_s} mph {forecast.wind_d}</td>
-                                                <td>{forecast.weather} {getWeatherIcon(forecast.weather)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div className="hourly-forecast-container">
+                                <h3 className="hourly-title">Hourly Breakdown</h3>
+                                <div className="hourly-cards-grid">
+                                    {weatherData[selectedDate].map((forecast, index) => (
+                                        <div key={index} className="hourly-card">
+                                            <div className="hourly-time">{forecast.time.substring(0, 5)}</div>
+                                            <div className="hourly-icon">{getWeatherIcon(forecast.weather)}</div>
+                                            <div className="hourly-temp">{forecast.temp}°F</div>
+                                            <div className="hourly-details">
+                                                <div className="hourly-detail-item">
+                                                    <span className="detail-label">Feels:</span>
+                                                    <span className="detail-val">{forecast.feels_like}°F</span>
+                                                </div>
+                                                <div className="hourly-detail-item">
+                                                    <span className="detail-label">Humidity:</span>
+                                                    <span className="detail-val">{forecast.humidity}%</span>
+                                                </div>
+                                                <div className="hourly-detail-item">
+                                                    <span className="detail-label">Wind:</span>
+                                                    <span className="detail-val">{forecast.wind_s} mph {forecast.wind_d}</span>
+                                                </div>
+                                            </div>
+                                            <div className="hourly-desc">{forecast.weather}</div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     )}
